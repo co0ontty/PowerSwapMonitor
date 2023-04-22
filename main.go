@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/wanghuiyt/ding"
@@ -87,6 +88,7 @@ func (task *taskInfo) getPowerMapInfo() {
 }
 
 func (task *taskInfo) getPowerSwapList() {
+	fmt.Println(task.PowerSwapInfoUrl)
 	resp, err := http.Get(task.PowerSwapInfoUrl)
 	if err != nil {
 		fmt.Println("Error:", err)
@@ -129,7 +131,7 @@ func (task *taskInfo) sendPowerSwapInfoByDingTalkInfo(info PowerSwapInfo) {
 		AccessToken: task.DingtalkToken,
 		Secret:      task.DingtalkSec,
 	}
-	msg := fmt.Sprintf("[换电站上线] \n名称: %s \n地址: %s\n", info.Name, info.Address)
+	msg := fmt.Sprintf("[换电站推送] \n名称: %s \n地址: %s\n", info.Name, info.Address)
 	result := DingTalk.SendMessageText(msg)
 	fmt.Println(result)
 }
@@ -146,18 +148,45 @@ func difference(a, b []PowerSwapIndex) []PowerSwapIndex {
 	// 遍历 a 中的元素，如果不在 map 中，说明 a 中有但 b 中没有
 	for _, item := range a {
 		if _, ok := m[item]; !ok {
+			fmt.Println("debug info", item)
 			diff = append(diff, item)
 		}
 	}
 
 	return diff
 }
+
+func checkConfig() {
+	if _, err := os.Stat("config.ini"); os.IsNotExist(err) {
+		// 文件不存在，创建 config.ini 文件
+		file, err := os.Create("config.ini")
+		if err != nil {
+			fmt.Println("无法创建 config.ini 文件:", err)
+			return
+		}
+		defer file.Close()
+
+		// 写入默认内容到文件
+		_, err = file.Write([]byte("DingTalkToken  = 018949c267*****************\nDingTalkSec = SEC700b975e*******************"))
+		if err != nil {
+			fmt.Println("无法写入到 config.ini 文件:", err)
+			return
+		}
+		fmt.Println("已成功创建 config.ini 文件,请填写相关信息后再次运行")
+		os.Exit(0)
+	} else {
+		fmt.Println("config.ini 文件已存在")
+	}
+}
 func main() {
+	checkConfig()
 	cfg, err := ini.Load("config.ini")
 	getErr("load config", err)
-
 	task := &taskInfo{DingtalkToken: cfg.Section("").Key("DingTalkToken").String(), DingtalkSec: cfg.Section("").Key("DingTalkSec").String()}
 	task.sendPowerSwapInfoByDingTalkInfo(PowerSwapInfo{Name: "测试消息", Address: "测试地址"})
+	task.getPowerMapInfo()
+	task.getPowerSwapList()
+	task.getPowerDetailInfo()
 	ticker := time.NewTicker(30 * time.Minute) // 创建一个每 30 分钟触发一次的 Ticker
 	defer ticker.Stop()                        // 关闭 Ticker
 	for {
