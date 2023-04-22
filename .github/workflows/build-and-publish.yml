@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.20.x]
+        go-version: [1.19.x]
         os: [linux]
     steps:
     - name: Checkout code
