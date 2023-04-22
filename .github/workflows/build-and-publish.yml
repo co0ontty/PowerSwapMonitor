@@ -19,14 +19,15 @@ jobs:
         go-version: 1.17
 
     - name: Build 
-      run: GOOS=linux GOARCH=386 go build -o app-linux-386 main.go
-      run: GOOS=linux GOARCH=amd64 go build -o app-linux-amd64 main.go
-      run: GOOS=linux GOARCH=arm go build -o app-linux-arm main.go
-      run: GOOS=linux GOARCH=arm64 go build -o app-linux-arm64 main.go
-      run: GOOS=darwin GOARCH=386 go build -o app-darwin-386 main.go
-      run: GOOS=darwin GOARCH=amd64 go build -o app-darwin-amd64 main.go
-      run: GOOS=windows GOARCH=386 go build -o app-windows-386.exe main.go
-      run: GOOS=windows GOARCH=amd64 go build -o app-windows-amd64.exe main.go
+      run: |
+        GOOS=linux GOARCH=386 go build -o app-linux-386 main.go
+        GOOS=linux GOARCH=amd64 go build -o app-linux-amd64 main.go
+        GOOS=linux GOARCH=arm go build -o app-linux-arm main.go
+        GOOS=linux GOARCH=arm64 go build -o app-linux-arm64 main.go
+        GOOS=darwin GOARCH=386 go build -o app-darwin-386 main.go
+        GOOS=darwin GOARCH=amd64 go build -o app-darwin-amd64 main.go
+        GOOS=windows GOARCH=386 go build -o app-windows-386.exe main.go
+        GOOS=windows GOARCH=amd64 go build -o app-windows-amd64.exe main.go
 
     - name: Create Release
       id: create_release
@@ -55,6 +56,6 @@ jobs:
           app-darwin-amd64
           app-windows-386.exe
           app-windows-amd64.exe
-          
+
         asset_name: myapp
         asset_content_type: application/octet-stream
