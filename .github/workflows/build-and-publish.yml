@@ -1,4 +1,4 @@
-name: Build and Publish
+name: GoReleaser
 
 on:
   push:
@@ -6,53 +6,26 @@ on:
       - '*'
 
 jobs:
-  build-and-release:
+  build:
+    name: Build and Release
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        go-version: [1.16.x]
+        os: [windows, linux, darwin]
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
-
     - name: Setup Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.17
-
-    - name: Build 
+        go-version: ${{ matrix.go-version }}
+    - name: Install GoReleaser
       run: |
-        GOOS=linux GOARCH=amd64 go build -o PowerSwapMonitor-linux-amd64 main.go
-        GOOS=linux GOARCH=arm go build -o PowerSwapMonitor-linux-arm main.go
-        GOOS=linux GOARCH=arm64 go build -o PowerSwapMonitor-linux-arm64 main.go
-        GOOS=darwin GOARCH=arm64 go build -o PowerSwapMonitor-darwin-arm64 main.go
-        GOOS=darwin GOARCH=amd64 go build -o PowerSwapMonitor-darwin-amd64 main.go
-        GOOS=windows GOARCH=386 go build -o PowerSwapMonitor-windows-386.exe main.go
-        GOOS=windows GOARCH=amd64 go build -o PowerSwapMonitor-windows-amd64.exe main.go
-
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1.0.0
+        curl -sL https://github.com/goreleaser/goreleaser/releases/download/v0.184.0/goreleaser_Linux_x86_64.tar.gz | tar xz
+        sudo mv goreleaser /usr/local/bin/
+    - name: Build and Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-    - name: Attach artifacts to Release
-      id: upload-release-asset
-      uses: actions/upload-release-asset@v1.0.2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: |
-          PowerSwapMonitor-linux-amd64
-          PowerSwapMonitor-linux-arm64
-          PowerSwapMonitor-darwin-arm64
-          PowerSwapMonitor-darwin-amd64
-          PowerSwapMonitor-windows-386.exe
-          PowerSwapMonitor-windows-amd64.exe
-
-        asset_name: myapp
-        asset_content_type: application/octet-stream
+      run: |
+        goreleaser --rm-dist
