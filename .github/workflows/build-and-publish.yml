@@ -6,45 +6,64 @@ on:
       - '*'
 
 jobs:
-  build-and-publish:
-    name: Build and Publish
+  build-and-release:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v2
 
-      - name: Set up Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.16
+    - name: Setup Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
 
-      - name: Build
-        run: go build -v -o myapp .
+    - name: Cross-compile and package
+      run: |
+        go get -v ./...
+        mkdir -p release
+        for GOOS in darwin linux windows; do
+          for GOARCH in 386 amd64 arm arm64; do
+            echo "Building $GOOS/$GOARCH..."
+            export GOOS=$GOOS
+            export GOARCH=$GOARCH
+            go build -v -o release/myapp-$GOOS-$GOARCH
+            echo "Uploading artifact: myapp-$GOOS-$GOARCH"
+            ls -al release/myapp-$GOOS-$GOARCH
+            name=myapp-$GOOS-$GOARCH
+            path=release/myapp-$GOOS-$GOARCH
+            echo "::set-output name=$name::${{ steps.upload_artifact.outputs.artifact_url }}"
+            echo "::set-output name=$path::$path"
+          done
+        done
 
-      - name: Archive
-        uses: actions/upload-artifact@v2
-        with:
-          name: myapp
-          path: ./myapp
+    - name: Upload artifacts
+      id: upload_artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: myapp
+        path: ${{ join(needs.build-and-release.outputs['myapp-*'], '\n') }}
+      if: always()
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1.0.0
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v1.0.0
+        release_name: Release 1.0.0
+        body: This is the first release.
+        draft: false
+        prerelease: false
 
-      - name: Upload Release Asset
-        id: upload-release-asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./myapp
-          asset_name: myapp-${{ github.ref }}-${{ runner.os }}.tar.gz
-          asset_content_type: application/gzip
+    - name: Attach artifacts to Release
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ join(needs.build-and-release.outputs['myapp-*'], '\n') }}
+        asset_name: myapp
+        asset_content_type: application/octet-stream
