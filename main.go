@@ -88,7 +88,6 @@ func (task *taskInfo) getPowerMapInfo() {
 }
 
 func (task *taskInfo) getPowerSwapList() {
-	fmt.Println(task.PowerSwapInfoUrl)
 	resp, err := http.Get(task.PowerSwapInfoUrl)
 	if err != nil {
 		fmt.Println("Error:", err)
