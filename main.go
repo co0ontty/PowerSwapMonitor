@@ -132,7 +132,7 @@ func (task *taskInfo) sendPowerSwapInfoByDingTalkInfo(info PowerSwapInfo) {
 	}
 	msg := fmt.Sprintf("[换电站推送] \n名称: %s \n地址: %s\n", info.Name, info.Address)
 	result := DingTalk.SendMessageText(msg)
-	fmt.Println(result)
+	fmt.Println("DingTalk Response:\n", result)
 }
 
 func difference(a, b []PowerSwapIndex) []PowerSwapIndex {
@@ -174,7 +174,7 @@ func checkConfig() {
 		fmt.Println("已成功创建 config.ini 文件,请填写相关信息后再次运行")
 		os.Exit(0)
 	} else {
-		fmt.Println("config.ini 文件已存在")
+		fmt.Println("Blue Sky Coming !!!")
 	}
 }
 func main() {
