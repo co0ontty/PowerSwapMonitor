@@ -20,13 +20,13 @@ jobs:
 
     - name: Build 
       run: |
-        GOOS=linux GOARCH=amd64 go build -o app-linux-amd64 main.go
-        GOOS=linux GOARCH=arm go build -o app-linux-arm main.go
-        GOOS=linux GOARCH=arm64 go build -o app-linux-arm64 main.go
-        GOOS=darwin GOARCH=arm64 go build -o app-darwin-arm64 main.go
-        GOOS=darwin GOARCH=amd64 go build -o app-darwin-amd64 main.go
-        GOOS=windows GOARCH=386 go build -o app-windows-386.exe main.go
-        GOOS=windows GOARCH=amd64 go build -o app-windows-amd64.exe main.go
+        GOOS=linux GOARCH=amd64 go build -o PowerSwapMonitor-linux-amd64 main.go
+        GOOS=linux GOARCH=arm go build -o PowerSwapMonitor-linux-arm main.go
+        GOOS=linux GOARCH=arm64 go build -o PowerSwapMonitor-linux-arm64 main.go
+        GOOS=darwin GOARCH=arm64 go build -o PowerSwapMonitor-darwin-arm64 main.go
+        GOOS=darwin GOARCH=amd64 go build -o PowerSwapMonitor-darwin-amd64 main.go
+        GOOS=windows GOARCH=386 go build -o PowerSwapMonitor-windows-386.exe main.go
+        GOOS=windows GOARCH=amd64 go build -o PowerSwapMonitor-windows-amd64.exe main.go
 
     - name: Create Release
       id: create_release
@@ -47,13 +47,12 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: |
-          app-linux-386
-          app-linux-amd64
-          app-linux-arm64
-          app-darwin-arm64
-          app-darwin-amd64
-          app-windows-386.exe
-          app-windows-amd64.exe
+          PowerSwapMonitor-linux-amd64
+          PowerSwapMonitor-linux-arm64
+          PowerSwapMonitor-darwin-arm64
+          PowerSwapMonitor-darwin-amd64
+          PowerSwapMonitor-windows-386.exe
+          PowerSwapMonitor-windows-amd64.exe
 
         asset_name: myapp
         asset_content_type: application/octet-stream
