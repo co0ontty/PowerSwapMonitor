@@ -28,4 +28,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        goreleaser release --snapshot
+        goreleaser release --rm-dist
