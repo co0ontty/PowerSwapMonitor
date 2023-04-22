@@ -28,4 +28,4 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
-        goreleaser --snapshot --skip-publish
+        goreleaser --rm-dist

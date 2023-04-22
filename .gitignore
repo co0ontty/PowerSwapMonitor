@@ -19,6 +19,5 @@
 
 # Go workspace file
 go.work
-README.md
 LICENSE.md
 completions/
