@@ -20,11 +20,10 @@ jobs:
 
     - name: Build 
       run: |
-        GOOS=linux GOARCH=386 go build -o app-linux-386 main.go
         GOOS=linux GOARCH=amd64 go build -o app-linux-amd64 main.go
         GOOS=linux GOARCH=arm go build -o app-linux-arm main.go
         GOOS=linux GOARCH=arm64 go build -o app-linux-arm64 main.go
-        GOOS=darwin GOARCH=386 go build -o app-darwin-386 main.go
+        GOOS=darwin GOARCH=arm64 go build -o app-darwin-arm64 main.go
         GOOS=darwin GOARCH=amd64 go build -o app-darwin-amd64 main.go
         GOOS=windows GOARCH=386 go build -o app-windows-386.exe main.go
         GOOS=windows GOARCH=amd64 go build -o app-windows-amd64.exe main.go
@@ -52,7 +51,7 @@ jobs:
           app-linux-386
           app-linux-amd64
           app-linux-arm64
-          app-darwin-386
+          app-darwin-arm64
           app-darwin-amd64
           app-windows-386.exe
           app-windows-amd64.exe
