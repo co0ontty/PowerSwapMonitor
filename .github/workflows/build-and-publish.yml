@@ -34,11 +34,10 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v1.0.0
-        release_name: Release 1.0.0
-        body: This is the first release.
-        draft: false
-        prerelease: false
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
 
     - name: Attach artifacts to Release
       id: upload-release-asset
