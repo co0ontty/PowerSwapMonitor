@@ -256,7 +256,6 @@ func (task *taskInfo) getPowerMapCountInfo() {
 
 func (task *taskInfo) getPowerInfo() {
 	url := fmt.Sprintf("https://chargermap-api.nio.com/app/api/pe/h5/charge-map/v2/power/around?with_national_model=false&latitude=%s&longitude=%s&distance=%s&app_id=100119&timestamp=%d", task.Latitude, task.Longitude, task.Distance, time.Now().Unix())
-	fmt.Println(url)
 	resp, err := http.Get(url)
 	if err != nil {
 		fmt.Println("Error:", err)
