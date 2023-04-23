@@ -1,4 +1,4 @@
-module PowerSwapMonitoring
+module PowerSwapMonitor
 
 go 1.20
 

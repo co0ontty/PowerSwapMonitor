@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/wanghuiyt/ding"
@@ -17,6 +19,7 @@ type taskInfo struct {
 	DingtalkSec      string
 	PowerSwapInfoUrl string
 	PowerSwapList    []PowerSwapIndex
+	PowerSwapCount   int
 	ChangeList       []PowerSwapIndex
 }
 
@@ -56,6 +59,29 @@ type PowerSwapInfo struct {
 	RightDescSummary     string   `json:"right_desc_summary"`
 	RightDescDetailArray []string `json:"right_desc_detail_array"`
 	Model                string   `json:"model"`
+}
+
+type PowerMapCountResp struct {
+	RequestID   string            `json:"request_id"`
+	ServerTime  int64             `json:"server_time"`
+	ResultCode  string            `json:"result_code"`
+	EncryptType int               `json:"encrypt_type"`
+	Data        PowerMapCountInfo `json:"data"`
+}
+type PowerMapCountInfo struct {
+	StatisticUpdateTime          string `json:"statistic_update_time"`
+	CurrentAddress               string `json:"current_address"`
+	SwapNumber                   string `json:"swap_number"`
+	NioNpcChargerNumber          string `json:"nio_npc_charger_number"`
+	NioNpcConnectorNumber        string `json:"nio_npc_connector_number"`
+	NioDestChargerNumber         string `json:"nio_dest_charger_number"`
+	NioDestConnectorNumber       string `json:"nio_dest_connector_number"`
+	ThirdConnectorNumber         string `json:"third_connector_number"`
+	PsDistrictHousingCoveredRate string `json:"ps_district_housing_covered_rate"`
+	HighSpeedSwapNumber          string `json:"high_speed_swap_number"`
+	NioChargerNumber             string `json:"nio_charger_number"`
+	NioConnectorNumber           string `json:"nio_connector_number"`
+	TotalSwapTimesNumber         string `json:"total_swap_times_number"`
 }
 
 func getErr(msg string, err error) {
@@ -177,13 +203,38 @@ func checkConfig() {
 		fmt.Println("Blue Sky Coming !!!")
 	}
 }
+
+func (task *taskInfo) getPowerMapCountInfo() {
+	url := fmt.Sprintf("https://chargermap-api.nio.com/app/api/pe/h5/charge-map/v1/power/around/summary?app_id=100119&timestamp=%d", time.Now().Unix())
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer resp.Body.Close()
+	var response PowerMapCountResp
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	getErr("get power swap list error", err)
+	newSwapCount, _ := strconv.Atoi(strings.ReplaceAll(response.Data.SwapNumber, ",", ""))
+	if newSwapCount != task.PowerSwapCount {
+		msg := fmt.Sprintf("[换电站数量变化]：[%d] -> [%d]", task.PowerSwapCount, newSwapCount)
+		DingTalk := ding.Webhook{
+			AccessToken: task.DingtalkToken,
+			Secret:      task.DingtalkSec,
+		}
+		DingTalk.SendMessageText(msg)
+	}
+	task.PowerSwapCount = newSwapCount
+}
+
 func main() {
 	checkConfig()
 	cfg, err := ini.Load("config.ini")
 	getErr("load config", err)
 	task := &taskInfo{DingtalkToken: cfg.Section("").Key("DingTalkToken").String(), DingtalkSec: cfg.Section("").Key("DingTalkSec").String()}
-	task.sendPowerSwapInfoByDingTalkInfo(PowerSwapInfo{Name: "测试消息", Address: "测试地址"})
+	// task.sendPowerSwapInfoByDingTalkInfo(PowerSwapInfo{Name: "测试消息", Address: "测试地址"})
 	task.getPowerMapInfo()
+	task.getPowerMapCountInfo()
 	task.getPowerSwapList()
 	task.getPowerDetailInfo()
 	ticker := time.NewTicker(30 * time.Minute) // 创建一个每 30 分钟触发一次的 Ticker
@@ -191,6 +242,7 @@ func main() {
 	for {
 		select {
 		case <-ticker.C: // Ticker 触发的事件
+			task.getPowerMapCountInfo()
 			task.getPowerMapInfo()
 			task.getPowerSwapList()
 			task.getPowerDetailInfo()
