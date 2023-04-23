@@ -15,12 +15,16 @@ import (
 )
 
 type taskInfo struct {
-	DingtalkToken    string
-	DingtalkSec      string
-	PowerSwapInfoUrl string
-	PowerSwapList    []PowerSwapIndex
-	PowerSwapCount   int
-	ChangeList       []PowerSwapIndex
+	DingtalkToken     string
+	DingtalkSec       string
+	Longitude         string
+	Latitude          string
+	Distance          string
+	PowerSwapInfoUrl  string
+	PowerSwapList     []PowerSwapIndex
+	PowerSwapNameList []string
+	PowerSwapCount    int
+	ChangeList        []PowerSwapIndex
 }
 
 type PowerMapInfo struct {
@@ -82,6 +86,29 @@ type PowerMapCountInfo struct {
 	NioChargerNumber             string `json:"nio_charger_number"`
 	NioConnectorNumber           string `json:"nio_connector_number"`
 	TotalSwapTimesNumber         string `json:"total_swap_times_number"`
+}
+
+type PowerMapAroundInfo struct {
+	RequestID   string         `json:"request_id"`
+	ServerTime  int64          `json:"server_time"`
+	ResultCode  string         `json:"result_code"`
+	EncryptType int            `json:"encrypt_type"`
+	Data        PowerMapAround `json:"data"`
+}
+type Powers struct {
+	ID                   string   `json:"id"`
+	Name                 string   `json:"name"`
+	Type                 string   `json:"type"`
+	Location             string   `json:"location"`
+	OperatorID           string   `json:"operator_id"`
+	OperatorName         string   `json:"operator_name"`
+	Address              string   `json:"address"`
+	Construction         string   `json:"construction"`
+	RightDescSummary     string   `json:"right_desc_summary"`
+	RightDescDetailArray []string `json:"right_desc_detail_array"`
+}
+type PowerMapAround struct {
+	Powers []Powers `json:"powers"`
 }
 
 func getErr(msg string, err error) {
@@ -192,7 +219,7 @@ func checkConfig() {
 		defer file.Close()
 
 		// 写入默认内容到文件
-		_, err = file.Write([]byte("DingTalkToken  = 018949c267*****************\nDingTalkSec = SEC700b975e*******************"))
+		_, err = file.Write([]byte("DingTalkToken  = 018949c267*****************\nDingTalkSec = SEC700b975e*******************\nLatitude = 39.853147\nLongitude = 116.673329\nDistance = 19600"))
 		if err != nil {
 			fmt.Println("无法写入到 config.ini 文件:", err)
 			return
@@ -227,25 +254,64 @@ func (task *taskInfo) getPowerMapCountInfo() {
 	task.PowerSwapCount = newSwapCount
 }
 
+func (task *taskInfo) getPowerInfo() {
+	url := fmt.Sprintf("https://chargermap-api.nio.com/app/api/pe/h5/charge-map/v2/power/around?with_national_model=false&latitude=%s&longitude=%s&distance=%s&app_id=100119&timestamp=%d", task.Latitude, task.Longitude, task.Distance, time.Now().Unix())
+	fmt.Println(url)
+	resp, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+	defer resp.Body.Close()
+	var response PowerMapAroundInfo
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	getErr("get power swap list error", err)
+	newPowerNameList := []string{}
+	for _, v := range response.Data.Powers {
+		if v.Type != "PowerSwap" {
+			continue
+		}
+		if len(task.PowerSwapNameList) != 0 && !IsContain(task.PowerSwapNameList, v.Name) {
+			msg := fmt.Sprintf("[换电站变化] [%s] [%s]", v.Name, v.Address)
+			fmt.Println(msg)
+			task.sendPowerSwapInfoByDingTalkInfo(PowerSwapInfo{Name: v.Name, Address: v.Address})
+		}
+		newPowerNameList = append(newPowerNameList, v.Name)
+	}
+	task.PowerSwapNameList = newPowerNameList
+}
+
+func IsContain(items []string, item string) bool {
+	for _, eachItem := range items {
+		if eachItem == item {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
 	checkConfig()
 	cfg, err := ini.Load("config.ini")
 	getErr("load config", err)
-	task := &taskInfo{DingtalkToken: cfg.Section("").Key("DingTalkToken").String(), DingtalkSec: cfg.Section("").Key("DingTalkSec").String()}
-	// task.sendPowerSwapInfoByDingTalkInfo(PowerSwapInfo{Name: "测试消息", Address: "测试地址"})
-	task.getPowerMapInfo()
-	task.getPowerMapCountInfo()
-	task.getPowerSwapList()
-	task.getPowerDetailInfo()
-	ticker := time.NewTicker(30 * time.Minute) // 创建一个每 30 分钟触发一次的 Ticker
-	defer ticker.Stop()                        // 关闭 Ticker
+	task := &taskInfo{DingtalkToken: cfg.Section("").Key("DingTalkToken").String(), DingtalkSec: cfg.Section("").Key("DingTalkSec").String(), Latitude: "30.25308298", Longitude: "120.2155118", Distance: "19600000"}
+	if cfg.Section("").Key("Latitude") != nil {
+		task.Latitude = cfg.Section("").Key("Latitude").String()
+	}
+	if cfg.Section("").Key("Longitude") != nil {
+		task.Longitude = cfg.Section("").Key("Longitude").String()
+	}
+	if cfg.Section("").Key("Distance") != nil {
+		task.Distance = cfg.Section("").Key("Distance").String()
+	}
+	task.getPowerInfo()
+	task.sendPowerSwapInfoByDingTalkInfo(PowerSwapInfo{Name: "配置成功", Address: "列表初始化完成"})
+	ticker := time.NewTicker(30 * time.Minute)
+	defer ticker.Stop()
 	for {
 		select {
-		case <-ticker.C: // Ticker 触发的事件
-			task.getPowerMapCountInfo()
-			task.getPowerMapInfo()
-			task.getPowerSwapList()
-			task.getPowerDetailInfo()
+		case <-ticker.C:
+			task.getPowerInfo()
 		}
 	}
 }
