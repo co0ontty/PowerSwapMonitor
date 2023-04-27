@@ -304,6 +304,9 @@ func main() {
 		task.Distance = cfg.Section("").Key("Distance").String()
 	}
 	task.getPowerInfo()
+	task.getPowerMapInfo()
+	task.getPowerSwapList()
+	task.getPowerDetailInfo()
 	task.sendPowerSwapInfoByDingTalkInfo(PowerSwapInfo{Name: "配置成功", Address: "列表初始化完成"})
 	ticker := time.NewTicker(30 * time.Minute)
 	defer ticker.Stop()
@@ -311,6 +314,9 @@ func main() {
 		select {
 		case <-ticker.C:
 			task.getPowerInfo()
+			task.getPowerMapInfo()
+			task.getPowerSwapList()
+			task.getPowerDetailInfo()
 		}
 	}
 }
